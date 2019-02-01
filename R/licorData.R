@@ -9,9 +9,9 @@
 #' @export
 
 licorData <- function(location, returnImportant = F, purgeComments = T, makeConstCol = T, makeCommentsCol=T){
-  require(tidyverse)
+  #require(tidyverse)
   #require(stringr)
-  require(magrittr)
+  #require(magrittr)
   #determine if its an xlsx...
   excel <- regexpr(".xlsx$",location)>=0
   if(excel){  #NOT PREFERED
@@ -19,7 +19,7 @@ licorData <- function(location, returnImportant = F, purgeComments = T, makeCons
     #return()
     suppressMessages(data <- readxl::read_excel(path = location,sheet = 1,col_names = F))
     maxCols <- length(data)
-    data <- as_tibble(data)
+    data <- tibble::as_tibble(data)
     #makeconstcol currently does not function with excel imports
     makeConstCol <- F
 
@@ -30,7 +30,7 @@ licorData <- function(location, returnImportant = F, purgeComments = T, makeCons
       data <- data[,-length(data)]
       maxCols <- maxCols -1
     }
-    data <- as_tibble(data)
+    data <- tibble::as_tibble(data)
   }
   #the maxCols variable is the number of variables, which we use when reading in the data
 
@@ -43,7 +43,7 @@ licorData <- function(location, returnImportant = F, purgeComments = T, makeCons
 
   #store in the variables which change
   if(makeConstCol){
-    oxylocs <- as_tibble(which(arr.ind=T,data=="SysConst:Oxygen"))
+    oxylocs <- tibble::as_tibble(which(arr.ind=T,data=="SysConst:Oxygen"))
     #the plus one accounts for indexing error with detecting changes
     oxylocs[,2]<- oxylocs[,2]+1
     #the rbind technique does not work unless you pre-declare the vector...
@@ -53,9 +53,9 @@ licorData <- function(location, returnImportant = F, purgeComments = T, makeCons
       vals <- rbind(vals,data[id$row,id$col])
     }
     names(vals) <- "value"
-    oxylocs %<>% bind_cols(vals)
+    oxylocs <- dplyr::bind_cols(oxylocs,vals)
 
-    slocs <- as_tibble(which(arr.ind=T,data=="Const:S"))
+    slocs <- tibble::as_tibble(which(arr.ind=T,data=="Const:S"))
     if(nrow(slocs)>0){
       slocs[,2]<- slocs[,2]+1
       vals <- c()
@@ -64,7 +64,7 @@ licorData <- function(location, returnImportant = F, purgeComments = T, makeCons
         vals <- rbind(vals,data[id$row,id$col])
       }
       names(vals) <- "value"
-      slocs %<>% bind_cols(vals)
+      slocs <- dplyr::bind_cols(slocs,vals)
     }
 
   }
@@ -91,13 +91,13 @@ licorData <- function(location, returnImportant = F, purgeComments = T, makeCons
   data<- data[-1,]
   #delete the header line (it's saved as colnames) then delete the units line
   data<- data[-1,]
-  data <- set_tidy_names(data,quiet = T) #there are like 5 columns all called "time." this renames them to time..2,time..3 etc
+  data <- tibble::set_tidy_names(data,quiet = T) #there are like 5 columns all called "time." this renames them to time..2,time..3 etc
   counter <- counter+2 #increment counter for the header and unit lines
   #use counter var to adjust the "row" level on the slocs and oxylocs
   if(makeConstCol){
     slocs$row <- slocs$row - counter
     oxylocs$row <- oxylocs$row - counter
-    data %<>% add_column("Oxygen" = oxylocs$value[1])
+    data <- tibble::add_column(data,"Oxygen" = oxylocs$value[1])
     if(length(oxylocs$value)>1){
       #for loop increments over the indices with changed oxygen values and inserts them into the dataframe
       for(i in 2:length(oxylocs$value)){
@@ -105,7 +105,7 @@ licorData <- function(location, returnImportant = F, purgeComments = T, makeCons
       }
     }
     if(nrow(slocs)>0){
-      data %<>% add_column("Leaf_Area" = slocs$value[1])
+      data <- tibble::add_column(data,"Leaf_Area" = slocs$value[1])
       if(length(slocs$value)>1){
         for(i in 2:length(slocs$value)){
           data$Leaf_Area[slocs$row[i]:length(data$Leaf_Area)] <- slocs$value[i]
@@ -145,15 +145,15 @@ licorData <- function(location, returnImportant = F, purgeComments = T, makeCons
       commentdf <- data.frame("hhmmss" = comtimes, "Comments" = coms,stringsAsFactors = F) %>%
         set_colnames(c("hhmmss", "Comments")) #it tries to preserve the name for whatever reason...
       colnames(data)[grep("hhmmss",colnames(data))[1]]<- "hhmmss" #rename first instance of hhmmss to just hhmmss for sorting
-      data %<>% add_column("Comments"=NA,.before=2)
+      data <- tibble::add_column(data,"Comments"=NA,.before=2)
       counter <- length(comlocs)
       while(counter>= 1){ #we have to loop backwards in order to get all the positioning right
-        data %<>% add_row(.,Comments = commentdf[counter,2],hhmmss=commentdf[counter,1],.after = comlocs[counter])
+        data <- tibble::add_row(data,Comments = commentdf[counter,2],hhmmss=commentdf[counter,1],.after = comlocs[counter])
         counter <- counter-1
       }
 
     }
-    suppressMessages(data %<>% type_convert())
+    suppressMessages(data <- readr::type_convert(data))
 
   }
   if(makeCommentsCol & excel){
@@ -162,7 +162,7 @@ licorData <- function(location, returnImportant = F, purgeComments = T, makeCons
     commentlocs <- grep(pattern = "[0:9]{2}",data2$..1) #only the comments have got numbers at the front of them on page 2
     #that seems questionable - not 100% sure this is the case
     comments <- data2$..2[commentlocs]
-    data %<>% add_column("Comments"=NA,.before=2)
+    data <- tibble::add_column(data,"Comments"=NA,.before=2)
     comdf <- data.frame("Comments" = comments,"hhmmss" = data2$..1[commentlocs],stringsAsFactors = F)
     data <- bind_rows(data,comdf)
 
@@ -173,7 +173,7 @@ licorData <- function(location, returnImportant = F, purgeComments = T, makeCons
   }
 
   if(returnImportant){
-    important_data <- select(data,c("CO2_r_sp", "A", "Ci", "gsw", "elapsed","CO2_r","CO2_s","Qin","CO2_%","ETR"))
+    important_data <- dplyr::select(data,c("CO2_r_sp", "A", "Ci", "gsw", "elapsed","CO2_r","CO2_s","Qin","CO2_%","ETR"))
     #this while loop eliminates comments and non-data.
     counter <- 1
     while(counter < length(important_data$CO2_r_sp)){
@@ -194,7 +194,7 @@ licorData <- function(location, returnImportant = F, purgeComments = T, makeCons
         important_data$ETR[i]<- ""
       }
     }
-    important_data <- important_data %>% mutate_at(vars(1:10),as.numeric)
+    important_data <-  dplyr::mutate_at(important_data,vars(1:10),as.numeric)
     important_data$ETR <- important_data$ETR/4
     return(list(data,important_data))
   } else{

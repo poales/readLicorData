@@ -6,11 +6,11 @@
 #' @name licorFluorReadRCRDG
 #' @export
 licorFluorReadRCRDG <- function(location) {
-  require(tidyverse)
-  require(magrittr)
+  #require(tidyverse)
+  #require(magrittr)
   #like the gas exchange data, it automatically adds a blank column to the other end.
-  read_delim(file = location,delim = "\t") %>%
-    select(1:9) %>% add_column(run="FLUOR") %>% return()
+  dat <- readr::read_delim(file = location,delim = "\t")
+  return(tibble::add_column(dplyr::select(dat,1:9),run="FLUOR"))
   #I add a column called "run" where every entry is "FLUOR".  This is useful for if you want to plot fluorescence
   #and gas exchange in the same plot, on different facets using ggplot.facet_wrap()
 }
