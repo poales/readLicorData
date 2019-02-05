@@ -43,30 +43,8 @@ licorData <- function(location, returnImportant = F, purgeComments = T, makeCons
 
   #store in the variables which change
   if(makeConstCol){
-    oxylocs <- tibble::as_tibble(which(arr.ind=T,data=="SysConst:Oxygen"))
-    #the plus one accounts for indexing error with detecting changes
-    oxylocs[,2]<- oxylocs[,2]+1
-    #the rbind technique does not work unless you pre-declare the vector...
-    vals <- c()
-    for(i in 1:length(oxylocs$row)){
-      id <- oxylocs[i,]
-      vals <- rbind(vals,data[id$row,id$col])
-    }
-    names(vals) <- "value"
-    oxylocs <- dplyr::bind_cols(oxylocs,vals)
-
-    slocs <- tibble::as_tibble(which(arr.ind=T,data=="Const:S"))
-    if(nrow(slocs)>0){
-      slocs[,2]<- slocs[,2]+1
-      vals <- c()
-      for(i in 1:length(slocs$row)){
-        id <- slocs[i,]
-        vals <- rbind(vals,data[id$row,id$col])
-      }
-      names(vals) <- "value"
-      slocs <- dplyr::bind_cols(slocs,vals)
-    }
-
+    oxylocs <- dfPullConst(df=data,label = "SysConst:Oxygen")
+    slocs <- dfPullConst(df=data,label = "Const:S")
   }
 
   #this while loop eliminates all the non-data at the top of the page.
@@ -86,7 +64,6 @@ licorData <- function(location, returnImportant = F, purgeComments = T, makeCons
     }
   }
 
-  rm(tester)  #dunno why I bother doing this.
   colnames(data)<-as.character(unlist(data[1,])) #turn the header line into column names
   data<- data[-1,]
   #delete the header line (it's saved as colnames) then delete the units line
@@ -97,22 +74,12 @@ licorData <- function(location, returnImportant = F, purgeComments = T, makeCons
   if(makeConstCol){
     slocs$row <- slocs$row - counter
     oxylocs$row <- oxylocs$row - counter
-    data <- tibble::add_column(data,"Oxygen" = oxylocs$value[1])
-    if(length(oxylocs$value)>1){
-      #for loop increments over the indices with changed oxygen values and inserts them into the dataframe
-      for(i in 2:length(oxylocs$value)){
-        data$Oxygen[oxylocs$row[i]:length(data$Oxygen)] <- oxylocs$value[i]
-      }
+    if(nrow(oxylocs)>0){
+      data <- dfIncorporate(df = data, newDat = oxylocs, label = "Oxygen")
     }
     if(nrow(slocs)>0){
-      data <- tibble::add_column(data,"Leaf_Area" = slocs$value[1])
-      if(length(slocs$value)>1){
-        for(i in 2:length(slocs$value)){
-          data$Leaf_Area[slocs$row[i]:length(data$Leaf_Area)] <- slocs$value[i]
-        }
-      }
+      data <- dfIncorporate(df = data, newDat = slocs, label = "Leaf Area")
     }
-
   }
 
 
@@ -133,7 +100,6 @@ licorData <- function(location, returnImportant = F, purgeComments = T, makeCons
         }
         data <- data[-counter,] #remove the row with the comment
         #deleting the line essentially advances the counter, so we don't want to advance it again
-        #also why this is a while loop not a for loop...
       }else
       {
         counter <- counter+1
@@ -142,8 +108,8 @@ licorData <- function(location, returnImportant = F, purgeComments = T, makeCons
 
     #if there are no comments, you get errors with setting names and zero index for loops
     if(!is.null(comlocs)){
-      commentdf <- data.frame("hhmmss" = comtimes, "Comments" = coms,stringsAsFactors = F) %>%
-        set_colnames(c("hhmmss", "Comments")) #it tries to preserve the name for whatever reason...
+      commentdf <- data.frame("hhmmss" = comtimes, "Comments" = coms,stringsAsFactors = F)
+      commentdf <- magrittr::set_colnames(commentdf, c("hhmmss", "Comments")) #it tries to preserve the name for whatever reason...
       colnames(data)[grep("hhmmss",colnames(data))[1]]<- "hhmmss" #rename first instance of hhmmss to just hhmmss for sorting
       data <- tibble::add_column(data,"Comments"=NA,.before=2)
       counter <- length(comlocs)
@@ -164,7 +130,7 @@ licorData <- function(location, returnImportant = F, purgeComments = T, makeCons
     comments <- data2$..2[commentlocs]
     data <- tibble::add_column(data,"Comments"=NA,.before=2)
     comdf <- data.frame("Comments" = comments,"hhmmss" = data2$..1[commentlocs],stringsAsFactors = F)
-    data <- bind_rows(data,comdf)
+    data <- dplyr::bind_rows(data,comdf)
 
     #sort by time... not a perfect solution, if they're taken in the afternoon and yous tarted in the morning they will be positioned wrong
     #need to fix this at some point
@@ -179,7 +145,6 @@ licorData <- function(location, returnImportant = F, purgeComments = T, makeCons
     while(counter < length(important_data$CO2_r_sp)){
       if(is.na(important_data$CO2_r_sp[counter])){
         #deleting the line essentially advances the counter, so we don't want to advance it again
-        #also why this is a while loop not a for loop
         important_data <- important_data[-counter,]
       }else
       {
