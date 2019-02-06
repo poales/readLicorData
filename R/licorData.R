@@ -9,10 +9,6 @@
 #' @export
 
 licorData <- function(location, returnImportant = F, purgeComments = T, makeConstCol = T, makeCommentsCol=T){
-  #require(tidyverse)
-  #require(stringr)
-  #require(magrittr)
-  #determine if its an xlsx...
   excel <- regexpr(".xlsx$",location)>=0
   if(excel){  #NOT PREFERED
     suppressMessages(data <- readxl::read_excel(path = location,sheet = 1,col_names = F))
@@ -41,7 +37,6 @@ licorData <- function(location, returnImportant = F, purgeComments = T, makeCons
   counter <- 0
   #track how many lines of text we delete for adjustments to the sysconst columns later
   tester <- F
-
   while (!tester){
     if(is.na(data[1,maxCols]) | data[1,maxCols]==""){
       data <- data[-1,]
@@ -94,7 +89,7 @@ licorData <- function(location, returnImportant = F, purgeComments = T, makeCons
     #if there are no comments, you get errors with setting names and zero index for loops
     if(!is.null(comlocs)){
       commentdf <- data.frame("hhmmss" = comtimes, "Comments" = coms,stringsAsFactors = F)
-      commentdf <- magrittr::set_colnames(commentdf, c("hhmmss", "Comments"))
+      colnames(commentdf) <- c("hhmmss", "Comments")
       colnames(data)[grep("hhmmss",colnames(data))[1]]<- "hhmmss" #rename first instance of hhmmss to just hhmmss for sorting
       data <- tibble::add_column(data,"Comments"=NA,.before=2)
       counter <- length(comlocs)
@@ -109,9 +104,8 @@ licorData <- function(location, returnImportant = F, purgeComments = T, makeCons
   }
   if(makeCommentsCol & excel){
     colnames(data)[grep("hhmmss",colnames(data))[1]]<- "hhmmss" #rename first instance of hhmmss (there are multiple) to just hhmmss for sorting
-    data2 <- readxl::read_excel(path = location,sheet = 2,col_names = F) #in the xlsx comments are stored on page 2
+    data2 <- suppressMessages(readxl::read_excel(path = location,sheet = 2,col_names = F)) #in the xlsx comments are stored on page 2
     commentlocs <- grep(pattern = "[0:9]{2}",data2$..1) #only the comments have got numbers at the front of them on page 2
-    #that seems questionable - not 100% sure this is the case
     comments <- data2$..2[commentlocs]
     data <- tibble::add_column(data,"Comments"=NA,.before=2)
     comdf <- data.frame("Comments" = comments,"hhmmss" = data2$..1[commentlocs],stringsAsFactors = F)
@@ -124,7 +118,7 @@ licorData <- function(location, returnImportant = F, purgeComments = T, makeCons
   }
 
   if(returnImportant){
-    important_data <- dplyr::select(data,c("CO2_r_sp", "A", "Ci", "gsw", "elapsed","CO2_r","CO2_s","Qin","CO2_%","ETR"))
+    important_data <- dplyr::select(data,c("CO2_r_sp", "A", "Ci", "gsw", "elapsed","CO2_r","CO2_s","Qin","ETR"))
     #this while loop eliminates comments and non-data.
     counter <- 1
     while(counter < length(important_data$CO2_r_sp)){
@@ -142,8 +136,8 @@ licorData <- function(location, returnImportant = F, purgeComments = T, makeCons
         important_data$ETR[i]<- ""
       }
     }
-    important_data <-  dplyr::mutate_at(important_data,vars(1:10),as.numeric)
-    return(list(data,important_data))
+    important_data <- dplyr::mutate_at(important_data,vars(1:8),as.numeric)
+    return(important_data)
   } else{
     return(data)
   }
