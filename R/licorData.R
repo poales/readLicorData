@@ -4,18 +4,17 @@
 #' @param location the path to the data file
 #' @param returnImportant Causes the function to return a list of the full data tibble and another tibble with just a few hand-picked variables - useful if all you want is to do an A/Ci curve
 #' @param purgeComments Removes comments from the file recommended to leave this TRUE - will still work with FALSE but there will be issues
-#' @param makeConstCol turns S and Oxygen constants into a column
+#' @param makeConstCol turns S and Oxygen constants into a column. Currently doesn't work with .xlsx files
 #' @name licorData
 #' @export
 
-licorData <- function(location, returnImportant = F, purgeComments = T, makeConstCol = T, makeCommentsCol=T){
+licorData <- function(location, returnImportant = F, purgeComments = T, makeConstCol = F, makeCommentsCol=T){
   excel <- regexpr(".xlsx$",location)>=0
-  if(excel){  #NOT PREFERED
+  if(excel){
     suppressMessages(data <- readxl::read_excel(path = location,sheet = 1,col_names = F))
     maxCols <- length(data)
     data <- tibble::as_tibble(data)
-    #makeconstcol currently does not function with excel imports
-    makeConstCol <- F
+    makeConstCol <- F #makeconstcol currently does not function with excel imports
 
   } else {
     maxCols <- max(count.fields(file=location,sep = "\t",quote = "")) #This logic is needed to get around the long, narrow header at the top of the TSV
@@ -26,18 +25,13 @@ licorData <- function(location, returnImportant = F, purgeComments = T, makeCons
     }
     data <- tibble::as_tibble(data)
   }
-
-  #store in the variables which change and where
-  if(makeConstCol){
+  if(makeConstCol){ #Store in where and what changes (sysconsts)
     oxylocs <- dfPullConst(df=data,label = "SysConst:Oxygen")
     slocs <- dfPullConst(df=data,label = "Const:S")
   }
-
-  #this while loop eliminates all the non-data at the top of the page.
-  counter <- 0
-  #track how many lines of text we delete for adjustments to the sysconst columns later
+  counter <- 0 #track how many lines of text we delete for adjustments to the sysconst columns later
   tester <- F
-  while (!tester){
+  while (!tester){ #this while loop eliminates all the non-data at the top of the page.
     if(is.na(data[1,maxCols]) | data[1,maxCols]==""){
       data <- data[-1,]
       counter <- counter+1
@@ -53,7 +47,6 @@ licorData <- function(location, returnImportant = F, purgeComments = T, makeCons
   data<- data[-1,] #delete header and unit lines
   counter <- counter+2
   data <- tibble::set_tidy_names(data,quiet = T) #there are like 5 columns all called "time." this renames them to time..2,time..3 etc
-  #use counter var to adjust the "row" level on the slocs and oxylocs
   if(makeConstCol){
     slocs$row <- slocs$row - counter
     oxylocs$row <- oxylocs$row - counter
@@ -86,7 +79,6 @@ licorData <- function(location, returnImportant = F, purgeComments = T, makeCons
       }
     }
 
-    #if there are no comments, you get errors with setting names and zero index for loops
     if(!is.null(comlocs)){
       commentdf <- data.frame("hhmmss" = comtimes, "Comments" = coms,stringsAsFactors = F)
       colnames(commentdf) <- c("hhmmss", "Comments")
@@ -97,22 +89,17 @@ licorData <- function(location, returnImportant = F, purgeComments = T, makeCons
         data <- tibble::add_row(data,Comments = commentdf[counter,2],hhmmss=commentdf[counter,1],.after = comlocs[counter])
         counter <- counter-1
       }
-
     }
-    suppressMessages(data <- readr::type_convert(data))
-
+    suppressMessages(data <- readr::type_convert(data)) #removed comments means former char cols can be made into numbers
   }
   if(makeCommentsCol & excel){
-    colnames(data)[grep("hhmmss",colnames(data))[1]]<- "hhmmss" #rename first instance of hhmmss (there are multiple) to just hhmmss for sorting
+    colnames(data)[grep("hhmmss",colnames(data))[1]]<- "hhmmss" #rename first instance of hhmmss for sorting
     data2 <- suppressMessages(readxl::read_excel(path = location,sheet = 2,col_names = F)) #in the xlsx comments are stored on page 2
-    commentlocs <- grep(pattern = "[0:9]{2}",data2$..1) #only the comments have got numbers at the front of them on page 2
+    commentlocs <- grep(pattern = "^[0:9]{2}",data2$..1) #only the comments have got numbers at the front of them on page 2
     comments <- data2$..2[commentlocs]
     data <- tibble::add_column(data,"Comments"=NA,.before=2)
     comdf <- data.frame("Comments" = comments,"hhmmss" = data2$..1[commentlocs],stringsAsFactors = F)
     data <- dplyr::bind_rows(data,comdf)
-
-    #sort by time... not a perfect solution, if they're taken in the afternoon and yous tarted in the morning they will be positioned wrong
-    #need to fix this at some point
     data <- data[order(as.numeric(strptime(data$hhmmss,format="%H:%M:%S"))),] #strptime converts the hhmmss numerics into a sortable time
 
   }
