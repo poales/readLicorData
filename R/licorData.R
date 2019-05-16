@@ -96,7 +96,7 @@ licorData <- function(location, returnImportant = F, purgeComments = T, makeCons
     colnames(data)[grep("hhmmss",colnames(data))[1]]<- "hhmmss" #rename first instance of hhmmss for sorting
     data2 <- suppressMessages(readxl::read_excel(path = location,sheet = 2,col_names = F)) #in the xlsx comments are stored on page 2
     commentlocs <- grep(pattern = "^[\\d]{2}",unlist(data2[,1]),perl=T) #only the comments have got numbers at the front of them on page 2
-    comments <- data2[,2][commentlocs,]
+    comments <- unlist(unname(data2[,2][commentlocs,]))
     data <- tibble::add_column(data,"Comments"=NA,.before=2)
     comdf <- data.frame("Comments" = comments,"hhmmss" = unlist(data2[,1])[commentlocs],stringsAsFactors = F)
     data <- dplyr::bind_rows(data,comdf)
