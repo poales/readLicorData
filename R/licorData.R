@@ -5,13 +5,14 @@
 #' @param returnImportant Causes the function to return a list of the full data tibble and another tibble with just a few hand-picked variables - useful if all you want is to do an A/Ci curve
 #' @param purgeComments Removes comments from the file recommended to leave this TRUE - will still work with FALSE but there will be issues
 #' @param makeConstCol turns S and Oxygen constants into a column. Currently doesn't work with .xlsx files
+#' @param xlsxIndex which sheet to read on an xlsx
 #' @name licorData
 #' @export
 
-licorData <- function(location, returnImportant = F, purgeComments = T, makeConstCol = F, makeCommentsCol=T){
+licorData <- function(location, returnImportant = F, purgeComments = T, makeConstCol = F, makeCommentsCol=T,xlsxIndex=1){
   excel <- regexpr(".xlsx$",location)>=0
   if(excel){
-    suppressMessages(data <- readxl::read_excel(path = location,sheet = 1,col_names = F))
+    suppressMessages(data <- readxl::read_excel(path = location,sheet = xlsxIndex,col_names = F))
     maxCols <- length(data)
     data <- tibble::as_tibble(data)
     makeConstCol <- F #makeconstcol currently does not function with excel imports
