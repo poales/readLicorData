@@ -5,13 +5,14 @@
 #' @param returnImportant Causes the function to return a list of the full data tibble and another tibble with just a few hand-picked variables - useful if all you want is to do an A/Ci curve
 #' @param purgeComments Removes comments from the file recommended to leave this TRUE - will still work with FALSE but there will be issues
 #' @param makeConstCol turns S and Oxygen constants into a column. Currently doesn't work with .xlsx files
+#' @param xlsxIndex which sheet to read on an xlsx
 #' @name licorData
 #' @export
 
-licorData <- function(location, returnImportant = F, purgeComments = T, makeConstCol = F, makeCommentsCol=T){
+licorData <- function(location, returnImportant = F, purgeComments = T, makeConstCol = F, makeCommentsCol=T,xlsxIndex=1){
   excel <- regexpr(".xlsx$",location)>=0
   if(excel){
-    suppressMessages(data <- readxl::read_excel(path = location,sheet = 1,col_names = F))
+    suppressMessages(data <- readxl::read_excel(path = location,sheet = xlsxIndex,col_names = F))
     maxCols <- length(data)
     data <- tibble::as_tibble(data)
     makeConstCol <- F #makeconstcol currently does not function with excel imports
@@ -95,10 +96,10 @@ licorData <- function(location, returnImportant = F, purgeComments = T, makeCons
   if(makeCommentsCol & excel){
     colnames(data)[grep("hhmmss",colnames(data))[1]]<- "hhmmss" #rename first instance of hhmmss for sorting
     data2 <- suppressMessages(readxl::read_excel(path = location,sheet = 2,col_names = F)) #in the xlsx comments are stored on page 2
-    commentlocs <- grep(pattern = "^[0:9]{2}",data2$..1) #only the comments have got numbers at the front of them on page 2
-    comments <- data2$..2[commentlocs]
+    commentlocs <- grep(pattern = "^[\\d]{2}",unlist(data2[,1]),perl=T) #only the comments have got numbers at the front of them on page 2
+    comments <- unlist(unname(data2[,2][commentlocs,]))
     data <- tibble::add_column(data,"Comments"=NA,.before=2)
-    comdf <- data.frame("Comments" = comments,"hhmmss" = data2$..1[commentlocs],stringsAsFactors = F)
+    comdf <- data.frame("Comments" = comments,"hhmmss" = unlist(data2[,1])[commentlocs],stringsAsFactors = F)
     data <- dplyr::bind_rows(data,comdf)
     data <- data[order(as.numeric(strptime(data$hhmmss,format="%H:%M:%S"))),] #strptime converts the hhmmss numerics into a sortable time
 
