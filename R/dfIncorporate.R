@@ -9,7 +9,7 @@ dfIncorporate <- function(df, newDat, label){
   dat <- rep(newDat$value[1],length(df[,1]))
   if(length(newDat$value)>1){
     #for loop increments over the indices with changed oxygen values and inserts them into the dataframe
-    for(i in 2:length(oxynewDat$value)){
+    for(i in 2:length(newDat$value)){
       dat[newDat$row[i]:length(dat)] <- newDat$value[i]
     }
   }
