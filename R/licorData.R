@@ -2,14 +2,13 @@
 #'
 #' This function accepts a licor data file location (xlsx or no-extension (tsv)), and returns a tibble of all the data without the chaff
 #' @param location the path to the data file
-#' @param returnImportant Causes the function to return a list of the full data tibble and another tibble with just a few hand-picked variables - useful if all you want is to do an A/Ci curve
 #' @param purgeComments Removes comments from the file recommended to leave this TRUE - will still work with FALSE but there will be issues
 #' @param makeConstCol turns S and Oxygen constants into a column. Currently doesn't work with .xlsx files
 #' @param xlsxIndex which sheet to read on an xlsx
 #' @name licorData
 #' @export
 
-licorData <- function(location, returnImportant = F, purgeComments = T, makeConstCol = F, makeCommentsCol=T,xlsxIndex=1){
+licorData <- function(location, purgeComments = T, makeConstCol = F, makeCommentsCol=T,xlsxIndex=1){
   excel <- regexpr(".xlsx$",location)>=0
   if(excel){
     suppressMessages(data <- readxl::read_excel(path = location,sheet = xlsxIndex,col_names = F))
@@ -33,7 +32,9 @@ licorData <- function(location, returnImportant = F, purgeComments = T, makeCons
   counter <- 0 #track how many lines of text we delete for adjustments to the sysconst columns later
   tester <- F
   while (!tester){ #this while loop eliminates all the non-data at the top of the page.
-    if(is.na(data[1,maxCols]) | data[1,maxCols]==""){
+    #I am going to use maxCols-2 just to eliminate issues with a really stupid bug I found once.
+    #the bug is on LICOR's side, but we can work around it to an extent here.
+    if(is.na(data[1,maxCols-2]) | data[1,maxCols-2]==""){
       data <- data[-1,]
       counter <- counter+1
     } else {
@@ -41,8 +42,11 @@ licorData <- function(location, returnImportant = F, purgeComments = T, makeCons
       data <- data[-1,] #delete the top row, which is not useful to us (category)
       counter <- counter+1
     }
+    if(nrow(data) == 0) tester <- T
   }
-
+  if(nrow(data) <3){
+    stop("There is no data here.")
+  }
   colnames(data)<-as.character(unlist(data[1,]))
   data<- data[-1,]
   data<- data[-1,] #delete header and unit lines
@@ -102,31 +106,14 @@ licorData <- function(location, returnImportant = F, purgeComments = T, makeCons
     comdf <- data.frame("Comments" = comments,"hhmmss" = unlist(data2[,1])[commentlocs],stringsAsFactors = F)
     data <- dplyr::bind_rows(data,comdf)
     data <- data[order(as.numeric(strptime(data$hhmmss,format="%H:%M:%S"))),] #strptime converts the hhmmss numerics into a sortable time
-
   }
 
-  if(returnImportant){
-    important_data <- dplyr::select(data,c("CO2_r_sp", "A", "Ci", "gsw", "elapsed","CO2_r","CO2_s","Qin","ETR"))
-    #this while loop eliminates comments and non-data.
-    counter <- 1
-    while(counter < length(important_data$CO2_r_sp)){
-      if(is.na(important_data$CO2_r_sp[counter])){
-        important_data <- important_data[-counter,]
-      }else
-      {
-        counter <- counter+1
+  if("ETR" %in% colnames(data)){
+    for(i in 1:length(data$ETR)){
+      if(is.na(data$ETR[i])){
+        data$ETR[i]<- ""
       }
     }
-
-    #if you don't do this you end up with a bunch of points where ETR is 0, not NA - graphs very poorly
-    for(i in 1:length(important_data$ETR)){
-      if(is.na(important_data$ETR[i])){
-        important_data$ETR[i]<- ""
-      }
-    }
-    important_data <- dplyr::mutate_at(important_data,vars(1:8),as.numeric)
-    return(important_data)
-  } else{
-    return(data)
   }
+  return(data)
 }

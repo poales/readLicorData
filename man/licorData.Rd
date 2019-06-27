@@ -4,17 +4,17 @@
 \alias{licorData}
 \title{Read in data from the li-6800}
 \usage{
-licorData(location, returnImportant = F, purgeComments = T,
-  makeConstCol = T, makeCommentsCol = T)
+licorData(location, purgeComments = T, makeConstCol = F,
+  makeCommentsCol = T, xlsxIndex = 1)
 }
 \arguments{
 \item{location}{the path to the data file}
 
-\item{returnImportant}{Causes the function to return a list of the full data tibble and another tibble with just a few hand-picked variables - useful if all you want is to do an A/Ci curve}
-
 \item{purgeComments}{Removes comments from the file recommended to leave this TRUE - will still work with FALSE but there will be issues}
 
-\item{makeConstCol}{turns S and Oxygen constants into a column}
+\item{makeConstCol}{turns S and Oxygen constants into a column. Currently doesn't work with .xlsx files}
+
+\item{xlsxIndex}{which sheet to read on an xlsx}
 }
 \description{
 This function accepts a licor data file location (xlsx or no-extension (tsv)), and returns a tibble of all the data without the chaff
