@@ -9,9 +9,12 @@
 comSplit <- function(df){
   indices <- which(!is.na(df$Comments))
   mylist <- list()
-  for(i in 1:(length(indices)-1)){
-    mylist[[i]] <- df[indices[i]:(indices[i+1]-1),]
+  if(indices[1]>1){
+    mylist[[1]] <- df[1:(indices[1]-1)]
   }
-  mylist[[length(indices)]] <-  df[indices[length(indices)]:nrow(df),]
+  for(i in 1:(length(indices)-1)){
+    mylist[[length(mylist)+1]] <- df[indices[i]:(indices[i+1]-1),]
+  }
+  mylist[[length(mylist)+1]] <-  df[last(indices):nrow(df),]
   return(mylist)
 }
