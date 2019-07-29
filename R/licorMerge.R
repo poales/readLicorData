@@ -10,7 +10,7 @@ licorMerge <- function(df1, df2){
   end <- df1[nrow(df1),licorFinder(df1,"hhmmss")]
   start <- df2[1,licorFinder(df2,"hhmmss")]
   diff <- as.numeric(start-end)
-  df2$elapsed <- df2$elapsed - df2$elapsed[1] + df2$elapsed[nrow(df1)] + diff
+  df2$elapsed <- df2$elapsed - df2$elapsed[1] + df1$elapsed[nrow(df1)] + diff
   dfRet <- tryCatch(expr = {
     bind_rows(df1,df2)
   },error = function(e){
