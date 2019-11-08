@@ -25,15 +25,15 @@ licorData <- function(location, purgeComments = T, makeConstCol = F, makeComment
     }
     data <- tibble::as_tibble(data)
   }
-  cat("start of sysconst check ",Sys.time(),"\n")
+  #cat("start of sysconst check ",Sys.time(),"\n")
   if(makeConstCol){ #Store in where and what changes (sysconsts)
     oxylocs <- dfPullConst(df=data,label = "SysConst:Oxygen")
     slocs <- dfPullConst(df=data,label = "Const:S")
   }
-  cat("end of sysconst check ",Sys.time(),"\n")
+  #cat("end of sysconst check ",Sys.time(),"\n")
   counter <- 0 #track how many lines of text we delete for adjustments to the sysconst columns later
   tester <- F
-  cat("start of header elim ",Sys.time(),"\n")
+  #cat("start of header elim ",Sys.time(),"\n")
   #what follows is the old method of header elimination, but since it recreates the data multiple times it's a huge issue.
   
   # while (!tester){ #this while loop eliminates all the non-data at the top of the page.
@@ -56,7 +56,7 @@ licorData <- function(location, purgeComments = T, makeConstCol = F, makeComment
   } else{
     stop("There is no data here.")
   }
-  cat("end of header elim ",Sys.time(),"\n")
+  #cat("end of header elim ",Sys.time(),"\n")
   # if(nrow(data) <3){
   #   stop("There is no data here.")
   # }
@@ -65,7 +65,7 @@ licorData <- function(location, purgeComments = T, makeConstCol = F, makeComment
   data<- data[-1,] #delete header and unit lines
   counter <- counter+2
   data <- tibble::set_tidy_names(data,quiet = T) #there are like 5 columns all called "time." this renames them to time..2,time..3 etc
-  cat("start of incorporating constant changes ",Sys.time(),"\n")
+  #cat("start of incorporating constant changes ",Sys.time(),"\n")
   if(makeConstCol){
     slocs$row <- slocs$row - counter
     oxylocs$row <- oxylocs$row - counter
@@ -77,41 +77,51 @@ licorData <- function(location, purgeComments = T, makeConstCol = F, makeComment
     }
   }
 
-  cat("start of comment removal ",Sys.time(),"\n")
+  #cat("start of comment removal ",Sys.time(),"\n")
   if(purgeComments & !excel){
     #remove comments from the dataframe if requested (default TRUE)
     counter <- 1
     comlocs <- c()
     coms <- c()
     comtimes<- c()
-    while(counter < length(data$obs)+1){
-      if(data[counter,maxCols]==""){ #this is how we know it's a comment (only has data in the first two columns)
-        if(makeCommentsCol){#we actually want to save the comment and put it in a new column
-          comlocs <- rbind(comlocs,counter-1)
-          comtimes <- rbind(comtimes,data[counter,1])
-          coms <- rbind(coms,data[counter,2])
-        }
-        data <- data[-counter,] #remove the row with the comment
-      }else
-      {
-        counter <- counter+1
-      }
+    #I bet we can speed this up by vectorizing
+    comlocs <- which(data[,maxCols]=="")-1
+    if(makeCommentsCol & !is.null(comlocs)){
+      comtimes <- data[comlocs+1,1]
+      coms <- data[comlocs+1,2]
     }
-
+    
+    # while(counter < length(data$obs)+1){
+    #   if(data[counter,maxCols]==""){ #this is how we know it's a comment (only has data in the first two columns)
+    #     if(makeCommentsCol){#we actually want to save the comment and put it in a new column
+    #       comlocs <- rbind(comlocs,counter-1)
+    #       comtimes <- rbind(comtimes,data[counter,1])
+    #       coms <- rbind(coms,data[counter,2])
+    #     }
+    #      #remove the row with the comment
+    #   }
+    #   counter <- counter+1
+    # }
     if(!is.null(comlocs)){
+      data <- data[-c(comlocs+1),]
+    }
+    
+
+    if(!is.null(comlocs) & makeCommentsCol){
       commentdf <- data.frame("hhmmss" = comtimes, "Comments" = coms,stringsAsFactors = F)
       colnames(commentdf) <- c("hhmmss", "Comments")
       colnames(data)[grep("hhmmss",colnames(data))[1]]<- "hhmmss" #rename first instance of hhmmss to just hhmmss for sorting
       data <- tibble::add_column(data,"Comments"=NA,.before=2)
-      counter <- length(comlocs)
-      while(counter>= 1){ #we have to loop backwards in order to get all the positioning right
+      counter <- 1
+      while(counter<= length(comlocs)){ 
         data <- tibble::add_row(data,Comments = commentdf[counter,2],hhmmss=commentdf[counter,1],.after = comlocs[counter])
-        counter <- counter-1
+        counter <- counter+1
       }
     }
     suppressMessages(data[,1:4] <- readr::type_convert(data[,1:4])) #removed comments means former char cols can be made into numbers
   }
-  cat("start of comment incorporation ",Sys.time(),"\n")
+  #cat("End of comment removal ",Sys.time(),"\n")
+  
   if(makeCommentsCol & excel){
     colnames(data)[grep("hhmmss",colnames(data))[1]]<- "hhmmss" #rename first instance of hhmmss for sorting
     data2 <- suppressMessages(readxl::read_excel(path = location,sheet = 2,col_names = F)) #in the xlsx comments are stored on page 2
