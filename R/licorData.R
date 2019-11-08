@@ -25,33 +25,47 @@ licorData <- function(location, purgeComments = T, makeConstCol = F, makeComment
     }
     data <- tibble::as_tibble(data)
   }
+  cat("start of sysconst check ",Sys.time(),"\n")
   if(makeConstCol){ #Store in where and what changes (sysconsts)
     oxylocs <- dfPullConst(df=data,label = "SysConst:Oxygen")
     slocs <- dfPullConst(df=data,label = "Const:S")
   }
+  cat("end of sysconst check ",Sys.time(),"\n")
   counter <- 0 #track how many lines of text we delete for adjustments to the sysconst columns later
   tester <- F
-  while (!tester){ #this while loop eliminates all the non-data at the top of the page.
-    #I am going to use maxCols-2 just to eliminate issues with a really stupid bug I found once.
-    #the bug is on LICOR's side, but we can work around it to an extent here.
-    if(is.na(data[1,maxCols-2]) | data[1,maxCols-2]==""){
-      data <- data[-1,]
-      counter <- counter+1
-    } else {
-      tester <- T
-      data <- data[-1,] #delete the top row, which is not useful to us (category)
-      counter <- counter+1
-    }
-    if(nrow(data) == 0) tester <- T
-  }
-  if(nrow(data) <3){
+  cat("start of header elim ",Sys.time(),"\n")
+  #what follows is the old method of header elimination, but since it recreates the data multiple times it's a huge issue.
+  
+  # while (!tester){ #this while loop eliminates all the non-data at the top of the page.
+  #   #I am going to use maxCols-2 just to eliminate issues with a really stupid bug I found once.
+  #   #the bug is on LICOR's side, but we can work around it to an extent here.
+  #   if(is.na(data[1,maxCols-2]) | data[1,maxCols-2]==""){
+  #     data <- data[-1,]
+  #     counter <- counter+1
+  #   } else {
+  #     tester <- T
+  #     data <- data[-1,] #delete the top row, which is not useful to us (category)
+  #     counter <- counter+1
+  #   }
+  #   if(nrow(data) == 0) tester <- T
+  # }
+  rnum <- first(which(!(is.na(data[,maxCols-2]) | data[,maxCols-2]=="")))
+  if(!is.na(rnum)){
+    data <- data[-c(1:rnum),] #also deletes the category row
+    counter <- counter+rnum
+  } else{
     stop("There is no data here.")
   }
+  cat("end of header elim ",Sys.time(),"\n")
+  # if(nrow(data) <3){
+  #   stop("There is no data here.")
+  # }
   colnames(data)<-as.character(unlist(data[1,]))
   data<- data[-1,]
   data<- data[-1,] #delete header and unit lines
   counter <- counter+2
   data <- tibble::set_tidy_names(data,quiet = T) #there are like 5 columns all called "time." this renames them to time..2,time..3 etc
+  cat("start of incorporating constant changes ",Sys.time(),"\n")
   if(makeConstCol){
     slocs$row <- slocs$row - counter
     oxylocs$row <- oxylocs$row - counter
@@ -63,7 +77,7 @@ licorData <- function(location, purgeComments = T, makeConstCol = F, makeComment
     }
   }
 
-
+  cat("start of comment removal ",Sys.time(),"\n")
   if(purgeComments & !excel){
     #remove comments from the dataframe if requested (default TRUE)
     counter <- 1
@@ -95,8 +109,9 @@ licorData <- function(location, purgeComments = T, makeConstCol = F, makeComment
         counter <- counter-1
       }
     }
-    suppressMessages(data <- readr::type_convert(data)) #removed comments means former char cols can be made into numbers
+    suppressMessages(data[,1:4] <- readr::type_convert(data[,1:4])) #removed comments means former char cols can be made into numbers
   }
+  cat("start of comment incorporation ",Sys.time(),"\n")
   if(makeCommentsCol & excel){
     colnames(data)[grep("hhmmss",colnames(data))[1]]<- "hhmmss" #rename first instance of hhmmss for sorting
     data2 <- suppressMessages(readxl::read_excel(path = location,sheet = 2,col_names = F)) #in the xlsx comments are stored on page 2
@@ -107,7 +122,7 @@ licorData <- function(location, purgeComments = T, makeConstCol = F, makeComment
     data <- dplyr::bind_rows(data,comdf)
     data <- data[order(as.numeric(strptime(data$hhmmss,format="%H:%M:%S"))),] #strptime converts the hhmmss numerics into a sortable time
   }
-
+  
   if("ETR" %in% colnames(data)){
     for(i in 1:length(data$ETR)){
       if(is.na(data$ETR[i])){

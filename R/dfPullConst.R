@@ -2,10 +2,15 @@
 #' 
 #' @param df The dataframe to search through
 #' @param label What to search the dataframe for
+#' @param limit_search If TRUE, will limit search to only the first few columns (recommended for large datasets)
 #' @name dfPullConst
 
-dfPullConst <- function(df, label){
-  constlocs <- tibble::as_tibble(which(arr.ind=T,df==label))
+dfPullConst <- function(df, label,limit_search=T){
+  if(limit_search==TRUE){
+    constlocs <- tibble::as_tibble(which(arr.ind=T,df[,1:4]==label))
+  }else{
+    constlocs <- tibble::as_tibble(which(arr.ind=T,df==label))
+  }
   if(nrow(constlocs)>0){
     constlocs[,2]<- constlocs[,2]+1
     vals <- c()
