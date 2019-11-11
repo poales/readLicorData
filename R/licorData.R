@@ -107,7 +107,7 @@ licorData <- function(location, purgeComments = T, makeConstCol = F, makeComment
     }
     
 
-    if(!is.null(comlocs) & makeCommentsCol){
+    if(length(comlocs)!=0 & makeCommentsCol){
       commentdf <- data.frame("hhmmss" = comtimes, "Comments" = coms,stringsAsFactors = F)
       colnames(commentdf) <- c("hhmmss", "Comments")
       colnames(data)[grep("hhmmss",colnames(data))[1]]<- "hhmmss" #rename first instance of hhmmss to just hhmmss for sorting
