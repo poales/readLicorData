@@ -86,7 +86,7 @@ licorData <- function(location, purgeComments = T, makeConstCol = F, makeComment
     comtimes<- c()
     #I bet we can speed this up by vectorizing
     comlocs <- which(data[,maxCols]=="")-1
-    if(makeCommentsCol & !is.null(comlocs)){
+    if(makeCommentsCol & length(comlocs)!=0){
       comtimes <- data[comlocs+1,1]
       coms <- data[comlocs+1,2]
     }
@@ -102,7 +102,7 @@ licorData <- function(location, purgeComments = T, makeConstCol = F, makeComment
     #   }
     #   counter <- counter+1
     # }
-    if(!is.null(comlocs)){
+    if(length(comlocs)!=0){
       data <- data[-c(comlocs+1),]
     }
     
