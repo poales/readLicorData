@@ -12,7 +12,7 @@ licorData <- function(location, purgeComments = T, makeConstCol = F, makeComment
   excel <- regexpr(".xlsx$",location)>=0
   if(excel){
     suppressMessages(data <- readxl::read_excel(path = location,sheet = xlsxIndex,col_names = F))
-    maxCols <- length(data)
+    maxCols <- ncol(data)
     data <- tibble::as_tibble(data)
     makeConstCol <- F #makeconstcol currently does not function with excel imports
 
@@ -49,7 +49,7 @@ licorData <- function(location, purgeComments = T, makeConstCol = F, makeComment
   #   }
   #   if(nrow(data) == 0) tester <- T
   # }
-  rnum <- first(which(!(is.na(data[,maxCols-2]) | data[,maxCols-2]=="")))
+  rnum <- first(which(!(is.na(data[,maxCols-10]) | data[,maxCols-10]=="")))
   if(!is.na(rnum)){
     data <- data[-c(1:rnum),] #also deletes the category row
     counter <- counter+rnum
