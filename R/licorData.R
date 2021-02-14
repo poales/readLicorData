@@ -118,7 +118,7 @@ licorData <- function(location, purgeComments = T, makeConstCol = F, makeComment
         counter <- counter+1
       }
     }
-    suppressMessages(data <- readr::type_convert(data)) #removed comments means former char cols can be made into numbers
+    #suppressMessages(data <- readr::type_convert(data)) #removed comments means former char cols can be made into numbers
   }
   #cat("End of comment removal ",Sys.time(),"\n")
   
