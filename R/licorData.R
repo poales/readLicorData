@@ -49,7 +49,10 @@ licorData <- function(location, purgeComments = T, makeConstCol = F, makeComment
   #   }
   #   if(nrow(data) == 0) tester <- T
   # }
-  rnum <- first(which(!(is.na(data[,maxCols-10]) | data[,maxCols-10]=="")))
+  temp <- maxCols-10
+  if(temp<0)
+    temp <- maxCols
+  rnum <- dplyr::first(which(!(is.na(data[,temp]) | data[,temp]=="")))
   if(!is.na(rnum)){
     data <- data[-c(1:rnum),] #also deletes the category row
     counter <- counter+rnum
