@@ -4,8 +4,15 @@
 \alias{licorData}
 \title{Read in data from the li-6800}
 \usage{
-licorData(location, purgeComments = T, makeConstCol = F,
-  makeCommentsCol = T, xlsxIndex = 1)
+licorData(
+  location,
+  purgeComments = T,
+  makeConstCol = F,
+  makeCommentsCol = T,
+  xlsxIndex = 1,
+  recalcACi = T,
+  leafArea = 6
+)
 }
 \arguments{
 \item{location}{the path to the data file}
@@ -14,7 +21,13 @@ licorData(location, purgeComments = T, makeConstCol = F,
 
 \item{makeConstCol}{turns S and Oxygen constants into a column. Currently doesn't work with .xlsx files}
 
+\item{makeCommentsCol}{Turns comments into their own column}
+
 \item{xlsxIndex}{which sheet to read on an xlsx}
+
+\item{recalcACi}{Recalculates A and Ci based on the data, for excel files without cached values. Only for files which produce all zeroes, otherwise it will skip. Must provide leafArea}
+
+\item{leafArea}{leaf area used for recalculating recalcACi}
 }
 \description{
 This function accepts a licor data file location (xlsx or no-extension (tsv)), and returns a tibble of all the data without the chaff

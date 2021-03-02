@@ -4,12 +4,14 @@
 \alias{dfPullConst}
 \title{Find where constants are changed, and gather those changes into a data frame to return.}
 \usage{
-dfPullConst(df, label)
+dfPullConst(df, label, limit_search = T)
 }
 \arguments{
 \item{df}{The dataframe to search through}
 
 \item{label}{What to search the dataframe for}
+
+\item{limit_search}{If TRUE, will limit search to only the first few columns (recommended for large datasets)}
 }
 \description{
 Find where constants are changed, and gather those changes into a data frame to return.
