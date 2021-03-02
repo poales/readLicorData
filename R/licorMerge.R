@@ -14,11 +14,11 @@ licorMerge <- function(df1, df2){
   diff <- as.numeric(difftime(start[[1]],end[[1]],units="s"))
   df2$elapsed <- df2$elapsed - df2$elapsed[1] + df1$elapsed[nrow(df1)] + diff
   dfRet <- tryCatch(expr = {
-    bind_rows(df1,df2)
+    dplyr::bind_rows(df1,df2)
   },error = function(e){
     df1 <- df1[,-c(which(grepl(pattern = "hhmmss",x = colnames(df1))==TRUE))]
     df2 <- df2[,-c(which(grepl(pattern = "hhmmss",x = colnames(df2))==TRUE))]
-    bind_rows(df1,df2)
+    dplyr::bind_rows(df1,df2)
   },finally = {
     print("Removed hhmmss columns to allow merging dataframes")
   })

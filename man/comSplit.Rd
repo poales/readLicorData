@@ -12,6 +12,3 @@ comSplit(df)
 \description{
 Divide a tibble into a list of tibbles by comments. If you dermarcate your runs with comments, this will divide your data into runs.
 }
-\examples{
-licorData(loc,makeCommentsCol=T) \%>\% comSplit()
-}

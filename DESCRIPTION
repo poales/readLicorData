@@ -1,12 +1,17 @@
 Package: readLicorData
 Title: Read Li-Cor 6800 data
-Version: 0.0.0.9000
+Version: 1.0.0.0001
 Authors@R: person("Alan", "McClain", email = "mcclai54@msu.edu", role = c("aut", "cre"))
 Description: What the package does (one paragraph).
-Depends: R (>= 3.5.2)
-License: What license is it under?
+Depends: R (>= 4.0)
+License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
-Imports: tidyverse, readxl
+Imports: dplyr,
+  readxl,
+  tibble,
+  readr,
+  utils,
+  rlang
 Suggests: rjson
-RoxygenNote: 6.1.1
+RoxygenNote: 7.1.1

@@ -6,7 +6,7 @@
 #' @name licorFinder
 
 licorFinder <- function(df,colChoose){
-  found <- first(which(grepl(pattern = colChoose,x = colnames(df))==TRUE))
+  found <- dplyr::first(which(grepl(pattern = colChoose,x = colnames(df))==TRUE))
   if(is.na(found)){
     cat("The chosen column name was not found in df.\n")
     return(NA)

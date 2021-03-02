@@ -4,11 +4,14 @@
 #' @param location the path to the data file
 #' @param purgeComments Removes comments from the file recommended to leave this TRUE - will still work with FALSE but there will be issues
 #' @param makeConstCol turns S and Oxygen constants into a column. Currently doesn't work with .xlsx files
+#' @param makeCommentsCol Turns comments into their own column
 #' @param xlsxIndex which sheet to read on an xlsx
+#' @param recalcACi Recalculates A and Ci based on the data, for excel files without cached values. Only for files which produce all zeroes, otherwise it will skip. Must provide leafArea
+#' @param leafArea leaf area used for recalculating recalcACi
 #' @name licorData
 #' @export
 
-licorData <- function(location, purgeComments = T, makeConstCol = F, makeCommentsCol=T,xlsxIndex=1){
+licorData <- function(location, purgeComments = T, makeConstCol = F, makeCommentsCol=T,xlsxIndex=1, recalcACi = T, leafArea=6){
   excel <- regexpr(".xlsx$",location)>=0
   if(excel){
     suppressMessages(data <- readxl::read_excel(path = location,sheet = xlsxIndex,col_names = F))
@@ -17,8 +20,8 @@ licorData <- function(location, purgeComments = T, makeConstCol = F, makeComment
     makeConstCol <- F #makeconstcol currently does not function with excel imports
 
   } else {
-    maxCols <- max(count.fields(file=location,sep = "\t",quote = "")) #This logic is needed to get around the long, narrow header at the top of the TSV
-    data <- read.table(location,sep="\t",quote="",dec=".",stringsAsFactors = FALSE,blank.lines.skip = FALSE,skipNul = FALSE,comment.char="",row.names = NULL,col.names = 1:maxCols)
+    maxCols <- max(utils::count.fields(file=location,sep = "\t",quote = "")) #This logic is needed to get around the long, narrow header at the top of the TSV
+    data <- utils::read.table(location,sep="\t",quote="",dec=".",stringsAsFactors = FALSE,blank.lines.skip = FALSE,skipNul = FALSE,comment.char="",row.names = NULL,col.names = 1:maxCols)
     if(is.na(data[1,length(data)])){  #Terminal \t at the end of every line
       data <- data[,-length(data)]
       maxCols <- maxCols -1
@@ -35,7 +38,7 @@ licorData <- function(location, purgeComments = T, makeConstCol = F, makeComment
   tester <- F
   #cat("start of header elim ",Sys.time(),"\n")
   #what follows is the old method of header elimination, but since it recreates the data multiple times it's a huge issue.
-  
+
   # while (!tester){ #this while loop eliminates all the non-data at the top of the page.
   #   #I am going to use maxCols-2 just to eliminate issues with a really stupid bug I found once.
   #   #the bug is on LICOR's side, but we can work around it to an extent here.
@@ -93,7 +96,7 @@ licorData <- function(location, purgeComments = T, makeConstCol = F, makeComment
       comtimes <- data[comlocs+1,1]
       coms <- data[comlocs+1,2]
     }
-    
+
     # while(counter < length(data$obs)+1){
     #   if(data[counter,maxCols]==""){ #this is how we know it's a comment (only has data in the first two columns)
     #     if(makeCommentsCol){#we actually want to save the comment and put it in a new column
@@ -108,7 +111,7 @@ licorData <- function(location, purgeComments = T, makeConstCol = F, makeComment
     if(length(comlocs)!=0){
       data <- data[-c(comlocs+1),]
     }
-    
+
 
     if(length(comlocs)!=0 & makeCommentsCol){
       commentdf <- data.frame("hhmmss" = comtimes, "Comments" = coms,stringsAsFactors = F)
@@ -116,7 +119,7 @@ licorData <- function(location, purgeComments = T, makeConstCol = F, makeComment
       colnames(data)[grep("hhmmss",colnames(data))[1]]<- "hhmmss" #rename first instance of hhmmss to just hhmmss for sorting
       data <- tibble::add_column(data,"Comments"=NA,.before=2)
       counter <- 1
-      while(counter<= length(comlocs)){ 
+      while(counter<= length(comlocs)){
         data <- tibble::add_row(data,Comments = commentdf[counter,2],hhmmss=commentdf[counter,1],.after = comlocs[counter])
         counter <- counter+1
       }
@@ -124,7 +127,10 @@ licorData <- function(location, purgeComments = T, makeConstCol = F, makeComment
     #suppressMessages(data <- readr::type_convert(data)) #removed comments means former char cols can be made into numbers
   }
   #cat("End of comment removal ",Sys.time(),"\n")
-  
+  if(recalcACi & excel){
+
+  }
+
   if(makeCommentsCol & excel){
     colnames(data)[grep("hhmmss",colnames(data))[1]]<- "hhmmss" #rename first instance of hhmmss for sorting
     data2 <- suppressMessages(readxl::read_excel(path = location,sheet = 2,col_names = F)) #in the xlsx comments are stored on page 2
@@ -135,7 +141,7 @@ licorData <- function(location, purgeComments = T, makeConstCol = F, makeComment
     data <- dplyr::bind_rows(data,comdf)
     data <- data[order(as.numeric(strptime(data$hhmmss,format="%H:%M:%S"))),] #strptime converts the hhmmss numerics into a sortable time
   }
-  
+
   if("ETR" %in% colnames(data)){
     for(i in 1:length(data$ETR)){
       if(is.na(data$ETR[i])){

@@ -1,5 +1,5 @@
 #' Incorporate a pulled constant into the dataframe
-#' 
+#'
 #' @param df The dataframe to incorporate into
 #' @param newDat The new dataframe to add in, with "value"s and "row"s
 #' @param label The name of the new column

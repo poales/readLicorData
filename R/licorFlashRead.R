@@ -6,6 +6,6 @@
 licorFlashRead <- function(location) {
   #like the gas exchange data, it automatically adds a blank column to the other end.
   a <- rjson::fromJSON(file=location)[c("CODE","SECS","FLUOR","DC","PFD","REDMODAVG")]
-  b <- tibble::bind_cols(a)
+  b <- dplyr::bind_cols(a)
   return(tibble::add_column(b,run="FLUOR"))
 }
