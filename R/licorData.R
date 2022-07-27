@@ -116,8 +116,6 @@ licorData <- function(location, purgeComments = T, makeConstCol = F, makeComment
   }
 
   suppressMessages(data <- readr::type_convert(data))
-  if(recalcACi & excel){
 
-  }
   return(data)
 }
