@@ -9,7 +9,7 @@
 #' @name licorData
 #' @export
 
-licorData <- function(location, purgeComments = T, makeConstCol = F, makeCommentsCol=T,xlsxIndex=1, xlsxCalculateAll = F){
+licorData <- function(location, purgeComments = T, makeConstCol = F, makeCommentsCol=T,xlsxIndex=1){
   excel <- regexpr(".xlsx$",location)>=0
   if(excel){
     suppressMessages(data <- readxl::read_excel(path = location,sheet = xlsxIndex,col_names = F))

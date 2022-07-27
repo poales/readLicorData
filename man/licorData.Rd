@@ -9,9 +9,7 @@ licorData(
   purgeComments = T,
   makeConstCol = F,
   makeCommentsCol = T,
-  xlsxIndex = 1,
-  recalcACi = T,
-  leafArea = 6
+  xlsxIndex = 1
 )
 }
 \arguments{
@@ -23,11 +21,7 @@ licorData(
 
 \item{makeCommentsCol}{Turns comments into their own column}
 
-\item{xlsxIndex}{which sheet to read on an xlsx}
-
-\item{recalcACi}{Recalculates A and Ci based on the data, for excel files without cached values. Only for files which produce all zeroes, otherwise it will skip. Must provide leafArea}
-
-\item{leafArea}{leaf area used for recalculating recalcACi}
+\item{xlsxIndex}{which sheet to read on an xlsx.}
 }
 \description{
 This function accepts a licor data file location (xlsx or no-extension (tsv)), and returns a tibble of all the data without the chaff
